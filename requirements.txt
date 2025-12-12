@@ -1,0 +1,6 @@
+opencv-python
+numpy
+pandas
+google-genai
+PyQt5
+PyQt5-sip
