@@ -10,3 +10,8 @@ __pycache__/
 /.mypy_cache/
 temp_processed_sudoku.png
 preprocessing_steps/
+.DS_Store
+.env
+.env.*
+.idea/
+*.iml
