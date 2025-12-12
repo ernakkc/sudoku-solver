@@ -8,4 +8,4 @@ __pycache__/
 *.swo
 /.pytest_cache/
 /.mypy_cache/
-
+temp_processed_sudoku.png

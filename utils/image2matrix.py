@@ -15,11 +15,31 @@ def with_gemini(API_KEY: str, image_path: str):
             data=image_bytes,
             mime_type='image/png',
         ),
-        'Give me sudoku matrix. Represent the empty cells with 0. Respond only with the matrix in list format without any explanation.'
+        """You are analyzing a preprocessed Sudoku puzzle image. Extract the 9x9 grid.
+
+CRITICAL FORMATTING REQUIREMENTS:
+- Each row MUST be on a separate line
+- Use integers 1-9 for filled cells, 0 for empty cells
+- Output exactly 9 rows, each containing exactly 9 integers
+- NO markdown, NO code blocks, NO explanations
+- Start with [[ and end with ]]
+
+EXACT OUTPUT FORMAT (each row on new line):
+[[5,3,0,0,7,0,0,0,0],
+[6,0,0,1,9,5,0,0,0],
+[0,9,8,0,0,0,0,6,0],
+[8,0,0,0,6,0,0,0,3],
+[4,0,0,8,0,3,0,0,1],
+[7,0,0,0,2,0,0,0,6],
+[0,6,0,0,0,0,2,8,0],
+[0,0,0,4,1,9,0,0,5],
+[0,0,0,0,8,0,0,7,9]]
+
+Respond with this format only, no other text."""
         ],
     )
     output = response.text
-    cleaned_output = output.replace('```json', '').replace('```', '').strip()
+    cleaned_output = output.replace('```json', '').replace('```python', '').replace('```', '').strip()
     matrix = []
     for i, line in enumerate(cleaned_output.splitlines()):
         if line == '[' or line == ']':
