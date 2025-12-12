@@ -1,3 +1,11 @@
 config.ini
-.vscode
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+/.pytest_cache/
+/.mypy_cache/
 
