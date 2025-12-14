@@ -23,6 +23,8 @@ results/
 media/captured_sudoku_*.png
 media/solved_sudoku*.png
 
+# Note: app_images/ is NOT ignored - add your screenshots there for README
+
 # PyInstaller build files
 build/
 dist/

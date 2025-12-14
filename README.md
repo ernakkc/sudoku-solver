@@ -2,6 +2,9 @@
 
 A powerful desktop application that solves Sudoku puzzles using image processing and SAT (Boolean Satisfiability) algorithms. Built with PyQt5 and powered by AI-based image recognition.
 
+![Sudoku Solver Interface](app_images/general.png)
+*Main application interface with dual-panel display*
+
 ## ✨ Features
 
 - **📁 Multiple Input Methods**
@@ -40,7 +43,33 @@ A powerful desktop application that solves Sudoku puzzles using image processing
   - Scrollable solution panel
   - Console output for detailed logs
 
-## 🚀 Installation
+##  Screenshots
+
+### Main Interface
+![Application Main Screen](app_images/general.png)
+*Clean, modern interface with dark theme and dual-panel display*
+
+### File Selection
+![File Input](app_images/file.png)
+*Select Sudoku image from file system*
+
+### Image Preprocessing
+![Preprocessing Pipeline](app_images/preprocess.png)
+*Step-by-step image preprocessing and grid detection*
+
+### Matrix Verification & Editing
+![Matrix Editor](app_images/edit_screen.png)
+*Interactive 9x9 matrix editor for manual corrections*
+
+### Verification Dialog
+![User Verification](app_images/asking.png)
+*User verification prompt before solving*
+
+### Solution Display
+![Solution Result](app_images/solution.png)
+*Solved Sudoku puzzle with clear visualization*
+
+## �🚀 Installation
 
 ### Prerequisites
 
@@ -142,7 +171,7 @@ app/
 
 1. **Image Preprocessing**: The input image is preprocessed to detect and extract the Sudoku grid
 2. **Cell Extraction**: Each cell in the 9×9 grid is isolated
-3. **Digit Recognition**: Google's Generative AI (Gemini 2.0 Flash) identifies digits in each cell
+3. **Digit Recognition**: Google's Generative AI (Gemini 2.0 Flash Exp) identifies digits in each cell
    - Improved prompts for better empty cell detection
    - Automatic retry mechanism (up to 3 attempts)
    - Matrix validation (9x9 size, 0-9 values)
