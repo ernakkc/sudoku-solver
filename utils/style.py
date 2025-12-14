@@ -114,6 +114,19 @@ main_style = """
         min-width: 520px;
     }
     
+    /* Solution Frame for multiple solutions */
+    QFrame#solutionFrame {
+        border: 2px solid #00cc00;
+        border-radius: 6px;
+        background-color: #0d0d0d;
+        padding: 5px;
+    }
+    
+    QFrame#solutionFrame:hover {
+        border: 2px solid #00ff00;
+        background-color: #1a1a1a;
+    }
+    
     /* Horizontal Separator */
     QFrame#separator {
         color: #00ff00;

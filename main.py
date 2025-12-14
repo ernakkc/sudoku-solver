@@ -1,17 +1,11 @@
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QPushButton, QLabel, QTableWidget, QTabWidget,
-                             QTableWidgetItem, QHeaderView, QFrame, QGridLayout,
-                             QTextEdit, QLineEdit, QComboBox, QDateEdit, QTimeEdit,
-                             QScrollArea, QSplitter, QGroupBox, QSpinBox, QCheckBox,
-                             QProgressBar, QListWidget, QListWidgetItem, QMessageBox, QDialog,
-                             QCalendarWidget, QAbstractItemView, QDoubleSpinBox, QFileDialog)
-from PyQt5.QtCore import Qt, QDate, QTime
-from PyQt5.QtGui import QPixmap, QFont, QColor, QIcon
-from datetime import datetime, timedelta
+                             QPushButton, QLabel, QFrame, QGridLayout,
+                             QTextEdit, QScrollArea, QSpinBox, QMessageBox, QDialog, QFileDialog)
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QPixmap, QFont, QIcon, QCursor
 
 import cv2
-from time import sleep
-from random import randint
+from datetime import datetime
 from configparser import ConfigParser
 
 from utils.style import main_style, FONTS
@@ -98,7 +92,7 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
         left_layout.addStretch()
         image_section.addWidget(left_panel)
 
-        # Right panel - Processed image
+        # Right panel - Processed image with scroll area for multiple solutions
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
         right_label = QLabel("🧩 Processing Result")
@@ -110,14 +104,32 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
         right_frame.setObjectName("processedFrame")
         right_frame.setMinimumHeight(520)
         right_frame.setMinimumWidth(520)
-        right_inner = QVBoxLayout(right_frame)
-        right_inner.setContentsMargins(10, 10, 10, 10)
         
+        # Scroll area for multiple solutions
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Container widget for solutions
+        self.solutions_container = QWidget()
+        self.solutions_layout = QGridLayout(self.solutions_container)
+        self.solutions_layout.setSpacing(10)
+        self.solutions_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Default image
         pixmap_processed = QPixmap(self.processed_image_path)
-        self.processed_image_label = QLabel()
+        self.processed_image_label = ClickableLabel()
         self.processed_image_label.setPixmap(pixmap_processed.scaled(480, 480, Qt.KeepAspectRatio))
         self.processed_image_label.setAlignment(Qt.AlignCenter)
-        right_inner.addWidget(self.processed_image_label)
+        self.processed_image_label.clicked.connect(lambda: self.show_image_popup(self.processed_image_path))
+        self.solutions_layout.addWidget(self.processed_image_label, 0, 0)
+        
+        scroll_area.setWidget(self.solutions_container)
+        
+        right_frame_layout = QVBoxLayout(right_frame)
+        right_frame_layout.setContentsMargins(0, 0, 0, 0)
+        right_frame_layout.addWidget(scroll_area)
         
         right_layout.addWidget(right_frame)
         right_layout.addStretch()
@@ -201,13 +213,87 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
             return
         pixmap = QPixmap(image_path)
         if not pixmap.isNull():
-            self.processed_image_label.setPixmap(pixmap.scaled(500, 500, Qt.KeepAspectRatio))
+            self.processed_image_label.setPixmap(pixmap.scaled(480, 480, Qt.KeepAspectRatio))
             self.processed_image_label.update()
             self.processed_image_label.repaint()
             QApplication.processEvents()
             # Force multiple event loop cycles to ensure update
             QApplication.processEvents()
             QApplication.processEvents()
+    
+    def clear_solutions_panel(self):
+        """Clear all solution images from the right panel"""
+        # Remove all widgets except keep track of items to delete
+        items_to_delete = []
+        for i in range(self.solutions_layout.count()):
+            item = self.solutions_layout.itemAt(i)
+            if item and item.widget():
+                items_to_delete.append(item.widget())
+        
+        # Delete all items
+        for widget in items_to_delete:
+            self.solutions_layout.removeWidget(widget)
+            widget.deleteLater()
+        
+        # Recreate the default processed_image_label
+        pixmap_processed = QPixmap(self.processed_image_path)
+        self.processed_image_label = ClickableLabel()
+        self.processed_image_label.setPixmap(pixmap_processed.scaled(480, 480, Qt.KeepAspectRatio))
+        self.processed_image_label.setAlignment(Qt.AlignCenter)
+        self.processed_image_label.clicked.connect(lambda: self.show_image_popup(self.processed_image_path))
+        self.solutions_layout.addWidget(self.processed_image_label, 0, 0)
+    
+    def add_solution_image(self, image_path, solution_number, total_solutions):
+        """Add a solution image to the grid layout"""
+        # Create a frame for each solution
+        solution_frame = QFrame()
+        solution_frame.setObjectName("solutionFrame")
+        solution_layout = QVBoxLayout(solution_frame)
+        solution_layout.setContentsMargins(5, 5, 5, 5)
+        solution_layout.setSpacing(5)
+        
+        # Solution label
+        solution_label = QLabel(f"Solution {solution_number}/{total_solutions}")
+        solution_label.setAlignment(Qt.AlignCenter)
+        solution_label.setFont(QFont(FONTS['button'][0], 10, QFont.Bold))
+        solution_layout.addWidget(solution_label)
+        
+        # Clickable image
+        pixmap = QPixmap(image_path)
+        image_label = ClickableLabel()
+        image_label.setPixmap(pixmap.scaled(230, 230, Qt.KeepAspectRatio))
+        image_label.setAlignment(Qt.AlignCenter)
+        image_label.setCursor(QCursor(Qt.PointingHandCursor))
+        image_label.clicked.connect(lambda: self.show_image_popup(image_path))
+        solution_layout.addWidget(image_label)
+        
+        # Add to grid layout (2 columns)
+        row = (solution_number - 1) // 2
+        col = (solution_number - 1) % 2
+        self.solutions_layout.addWidget(solution_frame, row, col)
+    
+    def show_image_popup(self, image_path):
+        """Show image in a popup dialog"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Sudoku Solution - Enlarged View")
+        dialog.setModal(True)
+        dialog.setMinimumSize(600, 600)
+        
+        layout = QVBoxLayout()
+        
+        pixmap = QPixmap(image_path)
+        image_label = QLabel()
+        image_label.setPixmap(pixmap.scaled(550, 550, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        image_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(image_label)
+        
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.close)
+        close_btn.setMinimumHeight(35)
+        layout.addWidget(close_btn)
+        
+        dialog.setLayout(layout)
+        dialog.exec_()
 
     def reset_image_previews(self):
         """Reset both image panels to their default state"""
@@ -219,8 +305,9 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
             self.image_path = default_left
         
         if os.path.exists(default_right):
-            self.update_processed_image_preview(default_right)
             self.processed_image_path = default_right
+            # Clear and recreate the solutions panel
+            self.clear_solutions_panel()
 
     def on_button_click(self):
         QMessageBox.information(self, "Information", "Button Clicked!")     
@@ -289,9 +376,34 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
             sudoku_matrix = image2matrix.with_gemini(self.API_KEY, processed_image_path)
             if not sudoku_matrix:
                 self.print_error("Failed to extract Sudoku grid from image!")
+                self.print_info("Please try with a clearer image or different preprocessing.")
+                return False
+            
+            # Validate matrix
+            is_valid, error_msg = image2matrix.validate_matrix(sudoku_matrix)
+            if not is_valid:
+                self.print_error(f"Invalid matrix: {error_msg}")
                 return False
             
             self.print_matrix(sudoku_matrix, "📋 Extracted Sudoku Puzzle")
+            
+            # Ask user if they want to edit the matrix
+            reply = QMessageBox.question(
+                self, 
+                'Verify Matrix', 
+                'Does the extracted puzzle look correct?\n\nClick "No" to manually edit the matrix.',
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes
+            )
+            
+            if reply == QMessageBox.No:
+                # Show matrix editor
+                sudoku_matrix = self.show_matrix_editor(sudoku_matrix)
+                if not sudoku_matrix:
+                    self.print_info("❌ Matrix editing cancelled")
+                    return False
+                self.print_success("✓ Matrix manually edited")
+                self.print_matrix(sudoku_matrix, "📋 Edited Sudoku Puzzle")
 
             # Step 3: Check if solvable
             self.print_info("Step 3/4: Checking if Sudoku is solvable...")
@@ -304,23 +416,53 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
             
             self.print_success("✓ Sudoku is valid and solvable!")
             
-            # Step 4: Solve the puzzle
-            self.print_info("Step 4/4: Computing solution...")
-            solver = SudokuSAT()
-            solution = solver.solve_sudoku(sudoku_matrix)
+            # Step 4: Find all solutions
+            self.print_info("Step 4/4: Computing solutions...")
+            solver_multi = SudokuSAT()
+            all_solutions = solver_multi.solve_all_sudoku(sudoku_matrix, max_solutions=10)
             
-            if solution:
-                self.print_matrix(solution, "🎯 Sudoku Solution")
-                self.print_success("✓ Sudoku solved successfully!")
-
-                # create solution image
-                solved_image = matrix_to_image(solution, cell_size=52)
-                solved_image_path = "media/solved_sudoku.png"
-                solved_image.save(solved_image_path)
-                self.update_processed_image_preview(solved_image_path)
-                self.print_success(f"✓ Solution image saved: {solved_image_path}")
-
-                self.processed_image_path = solved_image_path
+            if all_solutions:
+                num_solutions = len(all_solutions)
+                
+                # Clear previous solutions
+                self.clear_solutions_panel()
+                
+                if num_solutions == 1:
+                    self.print_success(f"✓ Found UNIQUE solution (1/1)")
+                    self.print_matrix(all_solutions[0], "🎯 Sudoku Solution")
+                    
+                    # Create and display single solution
+                    solved_image = matrix_to_image(all_solutions[0], cell_size=52)
+                    solved_image_path = "media/solved_sudoku.png"
+                    solved_image.save(solved_image_path)
+                    
+                    # Update main display
+                    pixmap = QPixmap(solved_image_path)
+                    self.processed_image_label.setPixmap(pixmap.scaled(480, 480, Qt.KeepAspectRatio))
+                    self.processed_image_label.image_path = solved_image_path
+                    self.solutions_layout.addWidget(self.processed_image_label, 0, 0)
+                    
+                    self.processed_image_path = solved_image_path
+                else:
+                    self.print_warning(f"⚠️  Found MULTIPLE solutions: {num_solutions}")
+                    self.print_info("Note: Well-designed Sudoku puzzles should have exactly 1 solution.")
+                    self.print_info("")
+                    
+                    # Display all solutions
+                    for idx, solution in enumerate(all_solutions, 1):
+                        self.print_matrix(solution, f"🎯 Solution {idx}/{num_solutions}")
+                        
+                        # Create solution image
+                        solved_image = matrix_to_image(solution, cell_size=52)
+                        solved_image_path = f"media/solved_sudoku_{idx}.png"
+                        solved_image.save(solved_image_path)
+                        
+                        # Add to grid
+                        self.add_solution_image(solved_image_path, idx, num_solutions)
+                        
+                        self.print_success(f"✓ Solution {idx} image saved: {solved_image_path}")
+                
+                self.print_success("✓ All solutions displayed!")
                 
                 # Show preprocessing steps location
                 if preprocessing_steps:
@@ -438,6 +580,96 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
                 self.camera.release()
             cv2.destroyAllWindows()
     
+    def show_matrix_editor(self, matrix):
+        """Show dialog to manually edit the Sudoku matrix"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("✏️ Edit Sudoku Matrix")
+        dialog.setModal(True)
+        dialog.setMinimumSize(500, 550)
+        
+        layout = QVBoxLayout()
+        
+        # Instructions
+        info_label = QLabel("✏️ Edit the matrix below. Use 0 for empty cells, 1-9 for filled cells.")
+        info_label.setFont(QFont(FONTS['section'][0], 12, QFont.Bold))
+        info_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(info_label)
+        
+        # Create 9x9 grid of spinboxes
+        grid_widget = QWidget()
+        grid_layout = QGridLayout(grid_widget)
+        grid_layout.setSpacing(2)
+        
+        spinboxes = []
+        for i in range(9):
+            row_spinboxes = []
+            for j in range(9):
+                spinbox = QSpinBox()
+                spinbox.setMinimum(0)
+                spinbox.setMaximum(9)
+                spinbox.setValue(matrix[i][j])
+                spinbox.setAlignment(Qt.AlignCenter)
+                spinbox.setMinimumWidth(45)
+                spinbox.setMinimumHeight(45)
+                spinbox.setFont(QFont(FONTS['button'][0], 12, QFont.Bold))
+                
+                # Add thick borders for 3x3 blocks
+                if i % 3 == 0 and j % 3 == 0:
+                    spinbox.setStyleSheet("border: 2px solid #00ff00; background-color: #1a1a1a; color: #00ff00;")
+                elif i % 3 == 0 or j % 3 == 0:
+                    spinbox.setStyleSheet("border: 1px solid #00cc00; background-color: #1a1a1a; color: #00ff00;")
+                else:
+                    spinbox.setStyleSheet("border: 1px solid #666; background-color: #1a1a1a; color: #00ff00;")
+                
+                grid_layout.addWidget(spinbox, i, j)
+                row_spinboxes.append(spinbox)
+            spinboxes.append(row_spinboxes)
+        
+        layout.addWidget(grid_widget)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        ok_btn = QPushButton("✓ Apply Changes")
+        ok_btn.setMinimumHeight(40)
+        ok_btn.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_btn)
+        
+        cancel_btn = QPushButton("❌ Cancel")
+        cancel_btn.setMinimumHeight(40)
+        cancel_btn.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_btn)
+        
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+        
+        # Show dialog
+        if dialog.exec_() == QDialog.Accepted:
+            # Extract values from spinboxes
+            new_matrix = []
+            for i in range(9):
+                row = []
+                for j in range(9):
+                    row.append(spinboxes[i][j].value())
+                new_matrix.append(row)
+            return new_matrix
+        else:
+            return None
+    
+
+
+class ClickableLabel(QLabel):
+    """Custom QLabel that emits a signal when clicked"""
+    clicked = pyqtSignal()
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.image_path = None
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
 
 
 if __name__ == "__main__":

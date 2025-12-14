@@ -18,10 +18,26 @@ A powerful desktop application that solves Sudoku puzzles using image processing
   - SAT-based solving using Boolean constraints
   - Fast and reliable solutions
   - Validation of solvable puzzles
+  - **Multiple solution detection** - Finds all possible solutions (up to 10)
+  - Blocking clause technique for alternative solutions
+
+- **✏️ Manual Editing**
+  - Interactive matrix editor for corrections
+  - User verification of extracted puzzles
+  - Easy cell-by-cell editing with visual 3x3 block separation
+
+- **🔄 Advanced AI Recognition**
+  - Improved Gemini AI prompts for better accuracy
+  - Automatic retry mechanism (up to 3 attempts)
+  - Matrix validation and error detection
+  - Gemini 2.0 Flash Exp model for enhanced vision
 
 - **🎨 Modern GUI**
   - Full-screen desktop application
   - Real-time preview of original and processed images
+  - **Grid layout for multiple solutions** with 2-column display
+  - **Clickable images** - Popup enlargement on click
+  - Scrollable solution panel
   - Console output for detailed logs
 
 ## 🚀 Installation
@@ -66,19 +82,40 @@ python main.py
 2. **From Folder**: Click "📂 Solve from Folder" to batch process multiple Sudoku images
 3. **From Camera**: Click "📷 Solve from Camera" to capture a Sudoku puzzle in real-time
 
+### Matrix Verification & Editing
+
+After extracting the puzzle from an image, the application will:
+1. **Display the extracted matrix** in the console
+2. **Ask for verification**: "Does the extracted puzzle look correct?"
+3. If you click **"No"**, a matrix editor will open where you can:
+   - Edit any cell value (0-9)
+   - See 3x3 blocks visually separated
+   - Apply changes or cancel
+
+### Multiple Solutions
+
+- If a puzzle has **exactly 1 solution**: Displays "Found UNIQUE solution"
+- If a puzzle has **multiple solutions**: 
+  - Shows warning about multiple solutions
+  - Displays all solutions in a scrollable 2-column grid
+  - Each solution can be clicked to view enlarged
+  - Console shows detailed count and all matrices
+
 ### Supported Image Formats
 
 - PNG
 - JPG/JPEG
+- BMP
 - Images should clearly show a 9×9 Sudoku grid
 
 ## 🛠️ Technologies Used
 
-- **PyQt5**: Desktop GUI framework
+- **PyQt5**: Desktop GUI framework with interactive widgets
 - **OpenCV**: Image processing and computer vision
-- **Google Generative AI**: Digit recognition from grid cells
-- **Python-SAT**: Boolean satisfiability solver for Sudoku logic
-- **NumPy & Pandas**: Data manipulation
+- **Google Generative AI (Gemini 2.0 Flash Exp)**: Advanced digit recognition from grid cells
+- **Python-SAT (Glucose3)**: Boolean satisfiability solver for Sudoku logic
+- **PIL/Pillow**: Image manipulation and solution rendering
+- **NumPy**: Numerical operations
 
 ## 📁 Project Structure
 
@@ -105,9 +142,18 @@ app/
 
 1. **Image Preprocessing**: The input image is preprocessed to detect and extract the Sudoku grid
 2. **Cell Extraction**: Each cell in the 9×9 grid is isolated
-3. **Digit Recognition**: Google's Generative AI identifies digits in each cell
-4. **SAT Solving**: The puzzle is converted to Boolean constraints and solved using a SAT solver
-5. **Visualization**: The solution is overlaid on the original image
+3. **Digit Recognition**: Google's Generative AI (Gemini 2.0 Flash) identifies digits in each cell
+   - Improved prompts for better empty cell detection
+   - Automatic retry mechanism (up to 3 attempts)
+   - Matrix validation (9x9 size, 0-9 values)
+4. **User Verification**: User can manually edit the matrix if needed
+5. **SAT Solving**: The puzzle is converted to Boolean constraints and solved using a SAT solver
+   - Checks for multiple solutions
+   - Uses blocking clauses to find alternative solutions
+6. **Visualization**: 
+   - Single solution: Displayed in the main panel
+   - Multiple solutions: Grid layout with clickable thumbnails
+   - All solutions saved as separate PNG files
 
 ## 📝 Example Puzzles
 
@@ -116,8 +162,13 @@ Sample Sudoku images are provided in the `sudoku_examples/` folder for testing.
 ## ⚠️ Troubleshooting
 
 - **API Key Error**: Make sure your Google Generative AI API key is correctly set in `config.ini`
-- **Image Recognition Issues**: Ensure the image is clear and well-lit with a visible grid
+- **Image Recognition Issues**: 
+  - Ensure the image is clear and well-lit with a visible grid
+  - Use the manual matrix editor to correct any misrecognized cells
+  - The application will retry up to 3 times automatically
 - **Missing Dependencies**: Run `pip install -r requirements.txt` again
+- **Multiple Solutions Warning**: Well-designed Sudoku puzzles should have exactly 1 solution. If multiple solutions are found, check if the extracted matrix is correct using the manual editor.
+- **Deleted Widget Error**: If you encounter widget deletion errors, restart the application
 
 ## 🤝 Contributing
 

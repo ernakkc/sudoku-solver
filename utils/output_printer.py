@@ -53,3 +53,7 @@ class OutputPrinterMixin:
     def print_info(self, message):
         """Print info message with info icon"""
         self.printT(f"ℹ {message}")
+    
+    def print_warning(self, message):
+        """Print warning message with warning icon"""
+        self.printT(f"⚠️  {message}")

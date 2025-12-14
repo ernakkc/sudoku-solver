@@ -5,3 +5,4 @@ google-genai
 PyQt5
 PyQt5-sip
 python-sat
+pillow

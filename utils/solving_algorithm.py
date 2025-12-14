@@ -126,6 +126,70 @@ class SudokuSAT:
             print("Çözüm bulunamadı")
             return None # Çözüm yok
 
+    def solve_all_sudoku(self, input_grid, max_solutions=10):
+        """
+        Birden fazla çözümü bulur ve döndürür.
+        
+        Args:
+            input_grid: 9x9 puzzle (0=boş hücre)
+            max_solutions: Maksimum kaç çözüm bulunacak
+        
+        Returns:
+            list: Bulunan tüm çözümlerin listesi
+        """
+        # Temel kuralları ekle
+        self.add_constraints()
+
+        # Verilen ipuçlarını ekle
+        for r in range(9):
+            for c in range(9):
+                val = input_grid[r][c]
+                if val != 0:
+                    self.solver.add_clause([self._to_var(r, c, val)])
+
+        solutions = []
+        
+        while len(solutions) < max_solutions:
+            if self.solver.solve():
+                model = self.solver.get_model()
+                result_grid = [[0 for _ in range(9)] for _ in range(9)]
+                
+                # Modeli grid'e dönüştür
+                blocking_clause = []
+                for var in model:
+                    if var > 0:
+                        r, c, v = self._to_grid(var)
+                        result_grid[r][c] = v
+                        blocking_clause.append(-var)
+                
+                solutions.append(result_grid)
+                
+                # Bu çözümü engellemek için blocking clause ekle
+                # Böylece bir sonraki solve() farklı bir çözüm bulacak
+                self.solver.add_clause(blocking_clause)
+            else:
+                # Başka çözüm yok
+                break
+        
+        return solutions
+
+    def count_solutions(self, input_grid, max_count=100):
+        """
+        Sudoku'nun kaç farklı çözümü olduğunu sayar.
+        
+        Args:
+            input_grid: 9x9 puzzle (0=boş hücre)
+            max_count: Maksimum sayım limiti (performans için)
+        
+        Returns:
+            tuple: (solution_count: int, is_exact: bool)
+                   is_exact False ise max_count'a ulaşıldı demektir
+        """
+        solutions = self.solve_all_sudoku(input_grid, max_solutions=max_count)
+        count = len(solutions)
+        is_exact = count < max_count
+        return count, is_exact
+
 # --- ÖRNEK KULLANIM (Main Blok) ---
 if __name__ == "__main__":
     # Örnek: 0'lar boş hücreleri temsil eder.
