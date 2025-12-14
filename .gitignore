@@ -21,8 +21,15 @@ temp_processed_sudoku.png
 preprocessing_steps/
 results/
 media/captured_sudoku_*.png
-media/solved_sudoku.png
-media/ai.png
+media/solved_sudoku*.png
+
+# PyInstaller build files
+build/
+dist/
+*.spec
+*.ico
+*.icns
+media/icon.iconset/
 
 # System files
 .DS_Store

@@ -19,21 +19,33 @@ import sys
 import os
 
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
+
 class MainWindow(QMainWindow, OutputPrinterMixin):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Sudoku Solver")
-        self.setWindowIcon(QIcon("media/icon.png"))
+        icon_path = resource_path("media/icon.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
         
-        # Set to full screen
         self.showFullScreen()
         
         self.setAnimated(True)
         self.setStyleSheet(main_style)
 
-        # INITIALIZE VARIABLES
-        self.image_path = "media/icon.png"
-        self.processed_image_path = "media/ai.png"
+        # Use resource_path for all media files
+        self.image_path = resource_path("media/icon.png")
+        ai_png = resource_path("media/ai.png")
+        # Use icon.png as default if ai.png doesn't exist
+        self.processed_image_path = ai_png if os.path.exists(ai_png) else self.image_path
         self.images = []
         self.camera = None
         self.mode = None
@@ -236,9 +248,14 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
             widget.deleteLater()
         
         # Recreate the default processed_image_label
+        # Ensure the default image exists
+        if not os.path.exists(self.processed_image_path):
+            self.processed_image_path = "media/icon.png"
+        
         pixmap_processed = QPixmap(self.processed_image_path)
         self.processed_image_label = ClickableLabel()
-        self.processed_image_label.setPixmap(pixmap_processed.scaled(480, 480, Qt.KeepAspectRatio))
+        if not pixmap_processed.isNull():
+            self.processed_image_label.setPixmap(pixmap_processed.scaled(480, 480, Qt.KeepAspectRatio))
         self.processed_image_label.setAlignment(Qt.AlignCenter)
         self.processed_image_label.clicked.connect(lambda: self.show_image_popup(self.processed_image_path))
         self.solutions_layout.addWidget(self.processed_image_label, 0, 0)
@@ -297,8 +314,8 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
 
     def reset_image_previews(self):
         """Reset both image panels to their default state"""
-        default_left = "media/icon.png"
-        default_right = "media/ai.png"
+        default_left = resource_path("media/icon.png")
+        default_right = resource_path("media/ai.png")
         
         if os.path.exists(default_left):
             self.update_image_preview(default_left)
@@ -306,8 +323,11 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
         
         if os.path.exists(default_right):
             self.processed_image_path = default_right
-            # Clear and recreate the solutions panel
-            self.clear_solutions_panel()
+        else:
+            self.processed_image_path = default_left
+            
+        # Clear and recreate the solutions panel
+        self.clear_solutions_panel()
 
     def on_button_click(self):
         QMessageBox.information(self, "Information", "Button Clicked!")     
@@ -353,7 +373,7 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
         self.solve_sudoku_from_camera()
 
 
-    def solve_sudoku(self, image_path):
+    def solve_sudoku(self, image_path, skip_verification=False):
         try:
             self.print_info(f"Processing image: {image_path.split('/')[-1]}")
             
@@ -387,23 +407,26 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
             
             self.print_matrix(sudoku_matrix, "📋 Extracted Sudoku Puzzle")
             
-            # Ask user if they want to edit the matrix
-            reply = QMessageBox.question(
-                self, 
-                'Verify Matrix', 
-                'Does the extracted puzzle look correct?\n\nClick "No" to manually edit the matrix.',
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.Yes
-            )
-            
-            if reply == QMessageBox.No:
-                # Show matrix editor
-                sudoku_matrix = self.show_matrix_editor(sudoku_matrix)
-                if not sudoku_matrix:
-                    self.print_info("❌ Matrix editing cancelled")
-                    return False
-                self.print_success("✓ Matrix manually edited")
-                self.print_matrix(sudoku_matrix, "📋 Edited Sudoku Puzzle")
+            # Ask user if they want to edit the matrix (skip in batch mode)
+            if not skip_verification:
+                reply = QMessageBox.question(
+                    self, 
+                    'Verify Matrix', 
+                    'Does the extracted puzzle look correct?\n\nClick "No" to manually edit the matrix.',
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                
+                if reply == QMessageBox.No:
+                    # Show matrix editor
+                    sudoku_matrix = self.show_matrix_editor(sudoku_matrix)
+                    if not sudoku_matrix:
+                        self.print_info("❌ Matrix editing cancelled")
+                        return False
+                    self.print_success("✓ Matrix manually edited")
+                    self.print_matrix(sudoku_matrix, "📋 Edited Sudoku Puzzle")
+            else:
+                self.print_info("⚡ Auto-mode: Skipping manual verification")
 
             # Step 3: Check if solvable
             self.print_info("Step 3/4: Checking if Sudoku is solvable...")
@@ -482,6 +505,18 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
         self.print_section("SUDOKU SOLVER - FROM FOLDER")
         self.print_info(f"Processing Sudoku puzzles from folder: {folder_path.split('/')[-1]}")
         
+        # Ask user about batch mode
+        reply = QMessageBox.question(
+            self,
+            'Batch Processing Mode',
+            'Enable automatic mode?\n\n'
+            'YES = Skip manual verification for each file\n'
+            'NO = Review each puzzle manually',
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        batch_mode = (reply == QMessageBox.Yes)
+        
         file_count = 0
         successful_count = 0
         failed_count = 0
@@ -496,8 +531,8 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
                 # Display original image
                 self.update_image_preview(image_path)
                 
-                # Process the image
-                result = self.solve_sudoku(image_path)
+                # Process the image (with batch mode setting)
+                result = self.solve_sudoku(image_path, skip_verification=batch_mode)
                 
                 if result:
                     successful_count += 1
@@ -573,6 +608,8 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
                     QApplication.processEvents()  # Allow UI to update
                     self.solve_sudoku(captured_image_path)
                     break
+        except KeyboardInterrupt:
+            self.print_info("Camera capture interrupted by user (Ctrl+C)")
         except Exception as e:
             self.print_error(f"Camera error: {str(e)}")
         finally:
