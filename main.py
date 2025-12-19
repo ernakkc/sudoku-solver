@@ -229,7 +229,6 @@ class MainWindow(QMainWindow, OutputPrinterMixin):
             self.processed_image_label.update()
             self.processed_image_label.repaint()
             QApplication.processEvents()
-            # Force multiple event loop cycles to ensure update
             QApplication.processEvents()
             QApplication.processEvents()
     

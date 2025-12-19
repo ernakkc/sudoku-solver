@@ -43,25 +43,25 @@ class ImagePreprocessor:
         gray = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
         self._save_step(gray, "02_grayscale")
         
-        # Step 3: Normalize brightness (handle different background colors)
+        # Step 3: Normalize brightness 
         normalized = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
         self._save_step(normalized, "03_normalized")
         
-        # Step 4: CLAHE (Contrast Limited Adaptive Histogram Equalization)
+        # Step 4: CLAHE 
         # Kontrast iyileştirmesi çizgileri daha belirgin yapar
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         contrast_enhanced = clahe.apply(normalized)
         self._save_step(contrast_enhanced, "04_contrast_enhanced")
         
-        # Step 5: Minimal Gaussian blur (very light to keep digits sharp)
+        # Step 5: Gaussian blur
         blurred = cv2.GaussianBlur(contrast_enhanced, (3, 3), 0)
         self._save_step(blurred, "05_light_blur")
         
-        # Step 6: Use Canny edge detection to find contours (skip bilateral filter)
+        # Step 6: Canny edge for find contours 
         edges = cv2.Canny(blurred, 50, 150)
         self._save_step(edges, "06_canny_edges")
         
-        # Step 7: Minimal dilation to connect broken lines (reduced)
+        # Step 7: connect broken lines 
         kernel_dilate_early = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
         dilated_edges = cv2.dilate(edges, kernel_dilate_early, iterations=1)
         self._save_step(dilated_edges, "07_dilated_edges")
@@ -88,7 +88,7 @@ class ImagePreprocessor:
             cv2.drawContours(largest_contour_img, [largest_contour], -1, (0, 255, 0), 3)
             self._save_step(largest_contour_img, "09_largest_contour")
             
-            # Step 10: Get bounding box and crop (use blurred, not bilateral)
+            # Step 10: Get bounding box and crop
             x, y, w, h = cv2.boundingRect(largest_contour)
             cropped = blurred[y:y+h, x:x+w]
             self._save_step(cropped, "10_cropped")
@@ -101,27 +101,25 @@ class ImagePreprocessor:
             resized_normalized = cv2.normalize(resized, None, 0, 255, cv2.NORM_MINMAX)
             self._save_step(resized_normalized, "12_resized_normalized")
             
-            # Continue processing with resized_normalized
-            # Step 13: Apply CLAHE for better contrast
+            # Step 13: CLAHE for better contrast
             resized_clahe = clahe.apply(resized_normalized)
             self._save_step(resized_clahe, "13_resized_contrast_enhanced")
             
-            # Step 14: Use only Adaptive threshold with parameters for sharp digits
+            # Step 14: Adaptive threshold
             final_thresh = cv2.adaptiveThreshold(
                 resized_clahe, 255,
                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                 cv2.THRESH_BINARY,
-                23, 8  # Larger block size, higher C = sharper, thinner digits
+                23, 8  
             )
             self._save_step(final_thresh, "14_adaptive_threshold")
             
-            # Step 15: Check if image needs inversion (white background = invert)
+            # Step 15: Check if image needs inversion 
             # Count white vs black pixels to decide
             white_pixels = np.sum(final_thresh == 255)
             black_pixels = np.sum(final_thresh == 0)
             
             if white_pixels > black_pixels:
-                # More white than black = invert needed
                 final = cv2.bitwise_not(final_thresh)
                 self._save_step(final, "15_inverted_final_result")
             else:
@@ -130,14 +128,12 @@ class ImagePreprocessor:
             
             return final, self.steps
         else:
-            # If no contours found, use the whole image
             self._save_step(original, "09_no_contours_using_full_image")
             resized = cv2.resize(blurred, (500, 500), interpolation=cv2.INTER_CUBIC)
             self._save_step(resized, "10_full_image_resized")
             resized_normalized = cv2.normalize(resized, None, 0, 255, cv2.NORM_MINMAX)
             self._save_step(resized_normalized, "11_normalized")
             
-            # Apply threshold on full image
             _, fallback_thresh = cv2.threshold(resized_normalized, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             self._save_step(fallback_thresh, "12_fallback_threshold")
             

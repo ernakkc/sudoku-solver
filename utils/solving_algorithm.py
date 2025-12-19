@@ -2,7 +2,6 @@ from pysat.solvers import Glucose3
 
 class SudokuSAT:
     def __init__(self):
-        # Glucose3, popüler ve hızlı bir SAT çözücüdür.
         self.solver = Glucose3()
 
     def _to_var(self, row, col, val):
@@ -26,38 +25,27 @@ class SudokuSAT:
         """
         Slaytlardaki matematiksel kuralları (Encoding) burada ekliyoruz.
         """
-        
-        # 1. KURAL: Her hücrede en az bir sayı olmalıdır.
-        # Slayt notu: V (p(i,j,1) v p(i,j,2) ... v p(i,j,9))
+
         for r in range(9):
             for c in range(9):
                 self.solver.add_clause([self._to_var(r, c, v) for v in range(1, 10)])
 
-        # 2. KURAL: Her hücrede en fazla bir sayı olabilir.
-        # Slayt notu: p(i,j,n) -> -p(i,j,n') (Eğer n varsa, n' olamaz)
         for r in range(9):
             for c in range(9):
                 for v1 in range(1, 10):
                     for v2 in range(v1 + 1, 10):
-                        # (-v1 V -v2) şeklinde eklenir (De Morgan kuralı gereği)
                         self.solver.add_clause([-self._to_var(r, c, v1), -self._to_var(r, c, v2)])
 
-        # 3. KURAL: Her satırda her sayıdan tam olarak bir tane olmalı.
-        # Slayt 63'teki formül.
         for r in range(9):
             for v in range(1, 10):
                 self.solver.add_clause([self._to_var(r, c, v) for c in range(9)])
 
-        # 4. KURAL: Her sütunda her sayıdan tam olarak bir tane olmalı.
-        # Slayt 64'teki formül.
         for c in range(9):
             for v in range(1, 10):
                 self.solver.add_clause([self._to_var(r, c, v) for r in range(9)])
 
-        # 5. KURAL: Her 3x3 blokta her sayıdan tam olarak bir tane olmalı.
-        # Slayt 65'teki formül.
-        for br in range(3): # Blok satırı (0,1,2)
-            for bc in range(3): # Blok sütunu (0,1,2)
+        for br in range(3):
+            for bc in range(3):
                 for v in range(1, 10):
                     clause = []
                     for i in range(3):
@@ -77,10 +65,8 @@ class SudokuSAT:
         Returns:
             tuple: (solvable: bool, error_msg: str or None)
         """
-        # Temel kuralları ekle
         self.add_constraints()
 
-        # Verilen sayıları kısıtlama olarak ekle
         for r in range(9):
             for c in range(9):
                 val = input_grid[r][c]
@@ -89,7 +75,6 @@ class SudokuSAT:
                         return False, f"Invalid value: {val} at ({r}, {c})"
                     self.solver.add_clause([self._to_var(r, c, val)])
 
-        # Test the SAT solver
         if self.solver.solve():
             return True, None
         else:
@@ -100,31 +85,26 @@ class SudokuSAT:
         Takes a 9x9 matrix from the API, solves it, and returns the result.
         Zeros are considered empty cells.
         """
-        # Temel kuralları ekle
         self.add_constraints()
 
-        # 6. KURAL: Verilen ipuçlarını (OCR'dan gelen sayıları) kısıtlama olarak ekle.
         for r in range(9):
             for c in range(9):
                 val = input_grid[r][c]
                 if val != 0:
-                    # Bu hücre kesinlikle bu değerdir.
                     self.solver.add_clause([self._to_var(r, c, val)])
 
-        # Çözümleme işlemi
         if self.solver.solve():
             model = self.solver.get_model()
             result_grid = [[0 for _ in range(9)] for _ in range(9)]
-            
-            # Modelden dönen "True" değişkenleri grid'e işle
+
             for var in model:
-                if var > 0: # Sadece pozitif (seçilmiş) değişkenleri al
+                if var > 0:
                     r, c, v = self._to_grid(var)
                     result_grid[r][c] = v
             return result_grid
         else:
             print("Çözüm bulunamadı")
-            return None # Çözüm yok
+            return None
 
     def solve_all_sudoku(self, input_grid, max_solutions=10):
         """
@@ -137,10 +117,8 @@ class SudokuSAT:
         Returns:
             list: Bulunan tüm çözümlerin listesi
         """
-        # Temel kuralları ekle
         self.add_constraints()
 
-        # Verilen ipuçlarını ekle
         for r in range(9):
             for c in range(9):
                 val = input_grid[r][c]
@@ -148,29 +126,25 @@ class SudokuSAT:
                     self.solver.add_clause([self._to_var(r, c, val)])
 
         solutions = []
-        
+
         while len(solutions) < max_solutions:
             if self.solver.solve():
                 model = self.solver.get_model()
                 result_grid = [[0 for _ in range(9)] for _ in range(9)]
-                
-                # Modeli grid'e dönüştür
+
                 blocking_clause = []
                 for var in model:
                     if var > 0:
                         r, c, v = self._to_grid(var)
                         result_grid[r][c] = v
                         blocking_clause.append(-var)
-                
+
                 solutions.append(result_grid)
-                
-                # Bu çözümü engellemek için blocking clause ekle
-                # Böylece bir sonraki solve() farklı bir çözüm bulacak
+
                 self.solver.add_clause(blocking_clause)
             else:
-                # Başka çözüm yok
                 break
-        
+
         return solutions
 
     def count_solutions(self, input_grid, max_count=100):
@@ -190,10 +164,7 @@ class SudokuSAT:
         is_exact = count < max_count
         return count, is_exact
 
-# --- ÖRNEK KULLANIM (Main Blok) ---
 if __name__ == "__main__":
-    # Örnek: 0'lar boş hücreleri temsil eder.
-    # API'den aldığın 9x9 matris bu formatta olacak.
     sample_puzzle = [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],

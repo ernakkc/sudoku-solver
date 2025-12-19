@@ -5,13 +5,6 @@ import re
 
 
 def validate_matrix(matrix):
-    """
-    Matrix'in geçerli bir Sudoku matrisi olup olmadığını kontrol eder.
-    
-    Returns:
-        tuple: (is_valid: bool, error_msg: str or None)
-    """
-    # 9x9 olması gerekiyor
     if not matrix or len(matrix) != 9:
         return False, f"Matrix must have 9 rows, found {len(matrix) if matrix else 0}"
     
@@ -27,21 +20,9 @@ def validate_matrix(matrix):
 
 
 def with_gemini(API_KEY: str, image_path: str, max_retries=3):
-    """
-    Gemini API kullanarak Sudoku görüntüsünden matrix çıkarır.
-    
-    Args:
-        API_KEY: Gemini API key
-        image_path: Görüntü dosya yolu
-        max_retries: Maksimum deneme sayısı
-    
-    Returns:
-        list: 9x9 Sudoku matrix veya None
-    """
     image_bytes = open(image_path, "rb").read()
     client = genai.Client(api_key=API_KEY)
     
-    # Geliştirilmiş prompt
     prompt = """You are analyzing a preprocessed Sudoku puzzle image. Your task is to extract the 9x9 grid with PERFECT ACCURACY.
 
 IMPORTANT INSTRUCTIONS:
