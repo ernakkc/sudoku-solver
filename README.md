@@ -1,5 +1,9 @@
 # 🧩 Sudoku Solver
 
+[![CI](https://github.com/ernakkc/sudoku-solver/actions/workflows/ci.yml/badge.svg)](https://github.com/ernakkc/sudoku-solver/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
 A powerful desktop application that solves Sudoku puzzles using image processing and SAT (Boolean Satisfiability) algorithms. Built with PyQt5 and powered by AI-based image recognition.
 
 ![Sudoku Solver Interface](app_images/general.png)
