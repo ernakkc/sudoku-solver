@@ -80,8 +80,8 @@ A powerful desktop application that solves Sudoku puzzles using image processing
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd app
+git clone https://github.com/ernakkc/sudoku-solver.git
+cd sudoku-solver
 ```
 
 2. Install required dependencies:
@@ -205,11 +205,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-This project is developed as part of a Discrete Mathematics course project.
+MIT License. See `LICENSE` file for details.
 
 ## 👥 Authors
 
-Developed for the Discrete Mathematics course at university.
+- Eren Akkoç - [GitHub](https://github.com/ernakkc)
+- Muhammed Emin Gökçek - [GitHub](https://github.com/gkck38)
 
 ---
 
